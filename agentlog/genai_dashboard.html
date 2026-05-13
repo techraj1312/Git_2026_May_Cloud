@@ -1,0 +1,1573 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width,initial-scale=1.0"/>
+<title>GenAI Usage Dashboard — Last 100 Days</title>
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+<script>
+(() => {
+  try {
+    const key = 'genai-dashboard-theme';
+    const saved = localStorage.getItem(key);
+    const preferred = window.matchMedia && window.matchMedia('(prefers-color-scheme: light)').matches
+      ? 'light'
+      : 'dark';
+    document.documentElement.dataset.theme = saved || preferred;
+  } catch (error) {
+    document.documentElement.dataset.theme = 'dark';
+  }
+})();
+</script>
+<style>
+@import url("https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;600;700;800&family=Space+Grotesk:wght@500;700&display=swap");
+:root{
+  --bg:#07111a;
+  --bg-deep:#0b1822;
+  --surface:rgba(13,28,39,.88);
+  --surface-strong:rgba(18,37,50,.94);
+  --surface-soft:rgba(18,37,50,.72);
+  --border:rgba(145,214,205,.16);
+  --line:rgba(255,255,255,.08);
+  --accent:#53d1c1;
+  --accent-soft:#baf4ed;
+  --green:#7fe39d;
+  --yellow:#ffca7a;
+  --red:#ff8d73;
+  --purple:#8fb0ff;
+  --cyan:#6fe7ff;
+  --orange:#ff9e64;
+  --text:#f3f7f6;
+  --muted:#97afb8;
+  --muted-strong:#c7d8dd;
+  --shadow:0 24px 80px rgba(0,0,0,.34);
+  --wash-left:rgba(83,209,193,.18);
+  --wash-right:rgba(255,158,100,.16);
+  --bg-start:#06111a;
+  --bg-mid:#0a1721;
+  --bg-end:#08121a;
+  --grid-overlay:rgba(255,255,255,.025);
+  --hero-start:rgba(16,39,53,.96);
+  --hero-end:rgba(11,24,34,.92);
+  --hero-wash:rgba(255,158,100,.18);
+  --hero-gloss:rgba(255,255,255,.08);
+  --hero-accent-glow:rgba(83,209,193,.08);
+  --chart-grid:rgba(255,255,255,.08);
+  --chart-text:#97afb8;
+  --tooltip-bg:rgba(7,17,26,.94);
+  --tooltip-title:#f3f7f6;
+  --tooltip-body:#d7e6ea;
+  --tooltip-border:rgba(83,209,193,.28);
+  --heatmap-empty:#161b22;
+  --heatmap-1:#0e4429;
+  --heatmap-2:#006d32;
+  --heatmap-3:#26a641;
+  --heatmap-4:#39d353;
+  --intensity-rgb:88,166,255;
+  --r:18px;
+}
+[data-theme="light"]{
+  --bg:#f4fbf8;
+  --bg-deep:#edf8f4;
+  --surface:rgba(255,255,255,.84);
+  --surface-strong:rgba(255,255,255,.92);
+  --surface-soft:rgba(243,250,248,.88);
+  --border:rgba(16,35,46,.10);
+  --line:rgba(16,35,46,.08);
+  --accent:#0f8b8d;
+  --accent-soft:#0a6063;
+  --green:#1c9a5f;
+  --yellow:#a86b00;
+  --red:#cf5d37;
+  --purple:#4769d8;
+  --cyan:#0b88bc;
+  --orange:#db7b1d;
+  --text:#10232e;
+  --muted:#617983;
+  --muted-strong:#36505b;
+  --shadow:0 18px 54px rgba(27,61,73,.12);
+  --wash-left:rgba(15,139,141,.14);
+  --wash-right:rgba(219,123,29,.12);
+  --bg-start:#eef8f5;
+  --bg-mid:#f7fbfa;
+  --bg-end:#edf6f3;
+  --grid-overlay:rgba(16,35,46,.05);
+  --hero-start:rgba(255,255,255,.96);
+  --hero-end:rgba(239,248,245,.94);
+  --hero-wash:rgba(15,139,141,.12);
+  --hero-gloss:rgba(255,255,255,.62);
+  --hero-accent-glow:rgba(15,139,141,.08);
+  --chart-grid:rgba(16,35,46,.12);
+  --chart-text:#617983;
+  --tooltip-bg:rgba(255,255,255,.96);
+  --tooltip-title:#10232e;
+  --tooltip-body:#45606a;
+  --tooltip-border:rgba(15,139,141,.18);
+  --heatmap-empty:#dfeae6;
+  --heatmap-1:#c2e4ce;
+  --heatmap-2:#8cd5a4;
+  --heatmap-3:#47bc76;
+  --heatmap-4:#189a57;
+  --intensity-rgb:15,139,141;
+}
+*{box-sizing:border-box;margin:0;padding:0}
+html{scroll-behavior:smooth}
+body{
+  font-family:"Manrope","Segoe UI",sans-serif;
+  background:
+    radial-gradient(circle at 0% 0%, var(--wash-left), transparent 28%),
+    radial-gradient(circle at 100% 0%, var(--wash-right), transparent 24%),
+    linear-gradient(180deg, var(--bg-start) 0%, var(--bg-mid) 42%, var(--bg-end) 100%);
+  color:var(--text);
+  line-height:1.6;
+  padding:40px 20px 72px;
+  min-height:100vh;
+  overflow-x:hidden;
+}
+body::before{
+  content:"";
+  position:fixed;
+  inset:0;
+  background-image:
+    linear-gradient(var(--grid-overlay) 1px, transparent 1px),
+    linear-gradient(90deg, var(--grid-overlay) 1px, transparent 1px);
+  background-size:28px 28px;
+  mask-image:radial-gradient(circle at center, black 30%, transparent 90%);
+  opacity:.35;
+  pointer-events:none;
+}
+.page-shell{max-width:1460px;margin:0 auto;position:relative;z-index:1}
+.hero{
+  display:grid;
+  grid-template-columns:minmax(0,1.4fr) minmax(320px,.9fr);
+  gap:18px;
+  padding:26px;
+  margin-bottom:28px;
+  background:
+    linear-gradient(135deg, var(--hero-start), var(--hero-end)),
+    radial-gradient(circle at top right, var(--hero-wash), transparent 30%);
+  border:1px solid rgba(145,214,205,.22);
+  border-radius:28px;
+  box-shadow:var(--shadow);
+  overflow:hidden;
+  position:relative;
+}
+.hero::before{
+  content:"";
+  position:absolute;
+  inset:0;
+  background:linear-gradient(115deg, var(--hero-gloss), transparent 35%, transparent 60%, var(--hero-accent-glow));
+  pointer-events:none;
+}
+.hero-copy,.hero-stat-grid{position:relative;z-index:1}
+.kicker{
+  font-size:.78rem;
+  letter-spacing:.18em;
+  text-transform:uppercase;
+  color:var(--accent-soft);
+  font-weight:700;
+  margin-bottom:10px;
+}
+h1{
+  font-family:"Space Grotesk","Segoe UI",sans-serif;
+  font-size:clamp(2rem,4vw,3.3rem);
+  line-height:1.05;
+  margin-bottom:10px;
+  letter-spacing:-.04em;
+}
+.subtitle{
+  color:var(--muted-strong);
+  margin-bottom:16px;
+  font-size:1rem;
+  max-width:860px;
+}
+.hero-meta{display:flex;flex-wrap:wrap;gap:10px;align-items:center}
+.badge{
+  display:inline-flex;
+  align-items:center;
+  gap:6px;
+  padding:6px 12px;
+  border-radius:999px;
+  font-size:.76rem;
+  font-weight:700;
+  background:linear-gradient(180deg, rgba(83,209,193,.16), rgba(83,209,193,.08));
+  color:var(--accent-soft);
+  border:1px solid rgba(83,209,193,.22);
+  backdrop-filter:blur(10px);
+}
+.theme-toggle{
+  appearance:none;
+  border:1px solid rgba(255,255,255,.10);
+  background:linear-gradient(180deg, rgba(255,255,255,.10), rgba(255,255,255,.04));
+  color:var(--text);
+  padding:8px 14px;
+  border-radius:999px;
+  font-family:"Space Grotesk","Segoe UI",sans-serif;
+  font-size:.76rem;
+  font-weight:700;
+  letter-spacing:.08em;
+  text-transform:uppercase;
+  cursor:pointer;
+  transition:transform .18s ease,border-color .18s ease,background .18s ease,box-shadow .18s ease;
+  box-shadow:0 10px 24px rgba(0,0,0,.12);
+}
+.theme-toggle:hover{
+  transform:translateY(-1px);
+  border-color:rgba(83,209,193,.34);
+  background:linear-gradient(180deg, rgba(83,209,193,.16), rgba(83,209,193,.06));
+}
+.theme-toggle:focus-visible{
+  outline:2px solid var(--accent);
+  outline-offset:2px;
+}
+.hero-stat-grid{
+  display:grid;
+  grid-template-columns:repeat(2,minmax(0,1fr));
+  gap:12px;
+  align-content:start;
+}
+.hero-stat{
+  padding:16px 18px;
+  border-radius:20px;
+  background:linear-gradient(180deg, rgba(255,255,255,.09), rgba(255,255,255,.03));
+  border:1px solid rgba(255,255,255,.1);
+  backdrop-filter:blur(8px);
+}
+.hero-stat-label{
+  display:block;
+  font-size:.72rem;
+  letter-spacing:.12em;
+  text-transform:uppercase;
+  color:var(--muted);
+  margin-bottom:8px;
+}
+.hero-stat strong{
+  display:block;
+  font-family:"Space Grotesk","Segoe UI",sans-serif;
+  font-size:2rem;
+  line-height:1;
+  color:var(--text);
+  margin-bottom:4px;
+}
+.hero-stat span:last-child{color:var(--muted-strong);font-size:.82rem}
+a{color:var(--accent);text-decoration:none}
+a:hover{text-decoration:underline}
+.section{margin-top:26px}
+.section-title{
+  display:flex;
+  align-items:center;
+  gap:12px;
+  font-family:"Space Grotesk","Segoe UI",sans-serif;
+  font-size:1.15rem;
+  font-weight:700;
+  color:var(--text);
+  margin-bottom:18px;
+}
+.section-title::before{
+  content:"";
+  width:38px;
+  height:4px;
+  border-radius:99px;
+  background:linear-gradient(90deg,var(--accent),var(--orange));
+}
+.grid{display:grid;gap:16px}
+.g2{grid-template-columns:repeat(auto-fit,minmax(260px,1fr))}
+.g3{grid-template-columns:repeat(auto-fit,minmax(220px,1fr))}
+.g4{grid-template-columns:repeat(auto-fit,minmax(180px,1fr))}
+.gc{grid-template-columns:repeat(auto-fit,minmax(360px,1fr))}
+.card{
+  background:linear-gradient(180deg, var(--surface-strong), rgba(11,24,34,.92));
+  border:1px solid var(--border);
+  border-radius:var(--r);
+  padding:22px;
+  box-shadow:var(--shadow);
+  position:relative;
+  overflow:hidden;
+  backdrop-filter:blur(14px);
+  transition:transform .24s ease,border-color .24s ease,box-shadow .24s ease;
+}
+.card::before{
+  content:"";
+  position:absolute;
+  inset:0;
+  background:linear-gradient(135deg, rgba(255,255,255,.05), transparent 34%);
+  pointer-events:none;
+}
+.card:hover{
+  transform:translateY(-4px);
+  border-color:rgba(83,209,193,.34);
+  box-shadow:0 30px 90px rgba(0,0,0,.38);
+}
+.stat-label{font-size:.72rem;color:var(--muted);text-transform:uppercase;letter-spacing:.14em}
+.stat-value{
+  font-family:"Space Grotesk","Segoe UI",sans-serif;
+  font-size:2.1rem;
+  font-weight:700;
+  line-height:1.08;
+  margin-top:8px;
+  letter-spacing:-.04em;
+}
+.stat-sub{font-size:.84rem;color:var(--muted-strong);margin-top:6px}
+.blue{color:var(--accent)}.green{color:var(--green)}.yellow{color:var(--yellow)}
+.red{color:var(--red)}.purple{color:var(--purple)}.cyan{color:var(--cyan)}
+.chart-h200{position:relative;height:200px}
+.chart-h260{position:relative;height:260px}
+.chart-h300{position:relative;height:300px}
+.chart-h360{position:relative;height:360px}
+table{
+  width:100%;
+  border-collapse:separate;
+  border-spacing:0;
+  font-size:.87rem;
+  overflow:hidden;
+  border:1px solid rgba(255,255,255,.05);
+  border-radius:14px;
+  background:rgba(255,255,255,.02);
+}
+th{
+  text-align:left;
+  padding:10px 12px;
+  color:var(--muted);
+  font-weight:700;
+  border-bottom:1px solid var(--line);
+  background:rgba(255,255,255,.03);
+}
+td{padding:10px 12px;border-bottom:1px solid var(--line);color:var(--muted-strong)}
+tbody tr:nth-child(even) td{background:rgba(255,255,255,.015)}
+tbody tr:hover td{background:rgba(83,209,193,.05)}
+tr:last-child td{border-bottom:none}
+.bar-cell{display:flex;align-items:center;gap:8px}
+.mini-bar{height:7px;border-radius:999px;background:linear-gradient(90deg,var(--accent),var(--cyan));flex-shrink:0}
+.tag{
+  display:inline-block;
+  padding:5px 11px;
+  border-radius:999px;
+  font-size:.81rem;
+  margin:4px;
+  background:linear-gradient(180deg, rgba(255,255,255,.08), rgba(255,255,255,.03));
+  border:1px solid rgba(255,255,255,.07);
+  color:var(--text);
+}
+code{
+  font-family:"Space Grotesk",Consolas,monospace;
+  background:rgba(83,209,193,.08);
+  color:var(--accent-soft);
+  padding:4px 8px;
+  border-radius:999px;
+  border:1px solid rgba(83,209,193,.12);
+}
+.heat-legend{
+  width:13px;
+  height:13px;
+  border-radius:4px;
+  display:inline-block;
+  border:1px solid rgba(255,255,255,.06);
+}
+.heat-0{background:var(--heatmap-empty)}
+.heat-1{background:var(--heatmap-1)}
+.heat-2{background:var(--heatmap-2)}
+.heat-3{background:var(--heatmap-3)}
+.heat-4{background:var(--heatmap-4)}
+#heatmap{display:flex;flex-wrap:wrap;gap:5px;justify-content:flex-start;padding:6px 0}
+.hm-cell{
+  width:14px;
+  height:14px;
+  border-radius:4px;
+  flex-shrink:0;
+  cursor:default;
+  border:1px solid rgba(255,255,255,.04);
+  box-shadow:inset 0 0 0 1px rgba(255,255,255,.02);
+}
+.hm-cell[title]:hover{outline:1px solid rgba(255,255,255,.6)}
+.intensity-grid{
+  display:grid;
+  gap:4px;
+  padding:10px;
+  border:1px solid rgba(255,255,255,.05);
+  border-radius:16px;
+  background:rgba(255,255,255,.02);
+}
+.ig-cell{border-radius:4px;aspect-ratio:1/1;border:1px solid rgba(255,255,255,.03)}
+footer{
+  text-align:center;
+  color:var(--muted);
+  font-size:.8rem;
+  margin-top:56px;
+  padding-top:18px;
+  border-top:1px solid rgba(255,255,255,.07);
+}
+.pill{
+  display:inline-block;
+  padding:4px 10px;
+  border-radius:999px;
+  font-size:.75rem;
+  font-weight:700;
+  margin:2px;
+  background:rgba(255,255,255,.06);
+  border:1px solid rgba(255,255,255,.08);
+}
+/* User Filter UI */
+.user-filter-panel{
+  display:flex;
+  flex-wrap:wrap;
+  gap:8px;
+  align-items:center;
+  margin-top:12px;
+  padding:12px 16px;
+  background:linear-gradient(180deg, rgba(255,255,255,.06), rgba(255,255,255,.02));
+  border:1px solid rgba(255,255,255,.08);
+  border-radius:14px;
+}
+.user-filter-panel label{
+  font-size:.72rem;
+  letter-spacing:.1em;
+  text-transform:uppercase;
+  color:var(--muted);
+  font-weight:700;
+}
+.user-filter-panel select,
+.user-filter-panel input[type="text"]{
+  appearance:none;
+  border:1px solid rgba(255,255,255,.12);
+  background:rgba(255,255,255,.06);
+  color:var(--text);
+  padding:7px 12px;
+  border-radius:8px;
+  font-family:inherit;
+  font-size:.82rem;
+  min-width:140px;
+}
+.user-filter-panel select:focus,
+.user-filter-panel input[type="text"]:focus{
+  outline:none;
+  border-color:var(--accent);
+  box-shadow:0 0 0 2px rgba(83,209,193,.18);
+}
+.user-filter-panel select option{
+  background:var(--bg-deep);
+  color:var(--text);
+}
+.user-filter-panel .filter-btn{
+  appearance:none;
+  border:1px solid rgba(83,209,193,.3);
+  background:linear-gradient(180deg, rgba(83,209,193,.18), rgba(83,209,193,.08));
+  color:var(--accent-soft);
+  padding:7px 16px;
+  border-radius:8px;
+  font-family:"Space Grotesk","Segoe UI",sans-serif;
+  font-size:.78rem;
+  font-weight:700;
+  cursor:pointer;
+  transition:transform .15s ease,background .15s ease;
+}
+.user-filter-panel .filter-btn:hover{
+  transform:translateY(-1px);
+  background:linear-gradient(180deg, rgba(83,209,193,.26), rgba(83,209,193,.12));
+}
+.user-filter-panel .filter-btn.clear-btn{
+  border-color:rgba(255,141,115,.3);
+  background:linear-gradient(180deg, rgba(255,141,115,.14), rgba(255,141,115,.06));
+  color:var(--red);
+}
+.user-filter-panel .filter-btn.clear-btn:hover{
+  background:linear-gradient(180deg, rgba(255,141,115,.22), rgba(255,141,115,.10));
+}
+.filter-status{
+  font-size:.78rem;
+  color:var(--muted-strong);
+  margin-left:auto;
+}
+.filter-status.active{
+  color:var(--accent);
+  font-weight:600;
+}
+.no-identity-hint{
+  font-size:.78rem;
+  color:var(--muted);
+  font-style:italic;
+}
+@media (max-width:900px){
+  .hero{grid-template-columns:1fr;padding:22px}
+  .hero-stat-grid{grid-template-columns:repeat(2,minmax(0,1fr))}
+}
+@media (max-width:640px){
+  body{padding:22px 14px 56px}
+  .hero{border-radius:22px}
+  .hero-stat-grid{grid-template-columns:1fr}
+  .gc,.g4,.g3,.g2{grid-template-columns:1fr}
+  .card{padding:18px}
+  .section-title{font-size:1.02rem}
+}
+</style>
+</head>
+<body>
+<main class="page-shell">
+<header class="hero">
+  <div class="hero-copy">
+    <div class="kicker">Personal GenAI Telemetry</div>
+    <h1>GenAI Usage Dashboard</h1>
+    <p class="subtitle">
+      Last <strong>100 days</strong> &nbsp;·&nbsp;
+      Feb 19, 2026 → Feb 19, 2026 &nbsp;·&nbsp;
+      Generated 2026-05-13 16:07
+    </p>
+    <div class="hero-meta">
+      <span class="badge">Copilot N/A</span>
+      <span class="badge">VS Code N/A</span>
+      <span class="badge">Intensity 3.4/100</span>
+      <span class="badge">Estimated value $0.00</span>
+      
+      <button id="themeToggle" class="theme-toggle" type="button">Theme: Dark</button>
+    </div>
+    <div class="user-filter-panel" id="userFilterPanel">
+      <label for="filterField">Filter by User</label>
+      <select id="filterField">
+        <option value="">All Users</option>
+      </select>
+      <input type="text" id="filterValue" placeholder="Enter value (e.g., ATTUID)" />
+      <button class="filter-btn" id="applyFilterBtn" type="button">Apply Filter</button>
+      <button class="filter-btn clear-btn" id="clearFilterBtn" type="button" style="display:none">Clear</button>
+      <span class="filter-status" id="filterStatus"></span>
+    </div>
+  </div>
+  <div class="hero-stat-grid">
+    <div class="hero-stat">
+      <span class="hero-stat-label">Requests</span>
+      <strong>1</strong>
+      <span>1.0 per session average</span>
+    </div>
+    <div class="hero-stat">
+      <span class="hero-stat-label">Tokens</span>
+      <strong>0</strong>
+      <span>0 prompt / 0 output</span>
+    </div>
+    <div class="hero-stat">
+      <span class="hero-stat-label">Active Days</span>
+      <strong>1</strong>
+      <span>0 day current streak</span>
+    </div>
+    <div class="hero-stat">
+      <span class="hero-stat-label">Tool Calls</span>
+      <strong>0</strong>
+      <span>0.0 per session average</span>
+    </div>
+  </div>
+</header>
+
+<!-- ── KPI CARDS ────────────────────────────────────────── -->
+<div class="section">
+  <div class="section-title">Overview — Last 100 Days</div>
+  <div class="grid g4">
+    <div class="card">
+      <div class="stat-label">Active Days</div>
+      <div class="stat-value blue">1</div>
+      <div class="stat-sub">out of 100 in window</div>
+    </div>
+    <div class="card">
+      <div class="stat-label">Sessions</div>
+      <div class="stat-value green">1</div>
+      <div class="stat-sub">0 multi-turn</div>
+    </div>
+    <div class="card">
+      <div class="stat-label">Requests</div>
+      <div class="stat-value yellow">1</div>
+      <div class="stat-sub">avg 1.0 / session · max 1</div>
+    </div>
+    <div class="card">
+      <div class="stat-label">Requests / Active Day</div>
+      <div class="stat-value purple">1.0</div>
+      <div class="stat-sub">over 1 active days</div>
+    </div>
+    <div class="card">
+      <div class="stat-label">Total Tokens</div>
+      <div class="stat-value blue">0</div>
+      <div class="stat-sub">0 prompt · 0 output</div>
+    </div>
+    <div class="card">
+      <div class="stat-label">Tool Calls</div>
+      <div class="stat-value green">0</div>
+      <div class="stat-sub">avg 0.0 / session</div>
+    </div>
+    <div class="card">
+      <div class="stat-label">Avg Response Time</div>
+      <div class="stat-value yellow">N/A</div>
+      <div class="stat-sub">TTFT N/A · p95 N/A</div>
+    </div>
+    <div class="card">
+      <div class="stat-label">Avg Output Tokens</div>
+      <div class="stat-value purple">0</div>
+      <div class="stat-sub">per request · agent mode</div>
+    </div>
+  </div>
+</div>
+
+<!-- ── ACTIVITY HEATMAP ──────────────────────────────────── -->
+<div class="section">
+  <div class="section-title">Daily Activity Heatmap</div>
+  <div class="card">
+    <div style="font-size:.8rem;color:var(--muted);margin-bottom:10px">
+      Each cell = one day &nbsp;|&nbsp; darker = more requests &nbsp;|&nbsp; oldest → newest left → right
+    </div>
+    <div id="heatmap"></div>
+    <div style="font-size:.75rem;color:var(--muted);margin-top:8px;display:flex;align-items:center;gap:6px">
+      Less
+      <span style="display:flex;gap:3px">
+        <span class="heat-legend heat-0"></span>
+        <span class="heat-legend heat-1"></span>
+        <span class="heat-legend heat-2"></span>
+        <span class="heat-legend heat-3"></span>
+        <span class="heat-legend heat-4"></span>
+      </span>
+      More
+    </div>
+  </div>
+</div>
+
+<!-- ── TRENDS ────────────────────────────────────────────── -->
+<div class="section">
+  <div class="section-title">Usage Trends</div>
+  <div class="grid gc">
+    <div class="card">
+      <div style="font-weight:600;margin-bottom:10px">Daily Requests (last 100 days)</div>
+      <div class="chart-h260"><canvas id="dailyReqChart"></canvas></div>
+    </div>
+    <div class="card">
+      <div style="font-weight:600;margin-bottom:10px">Cumulative Tokens</div>
+      <div class="chart-h260"><canvas id="cumulativeChart"></canvas></div>
+    </div>
+  </div>
+  <div class="grid gc" style="margin-top:14px">
+    <div class="card">
+      <div style="font-weight:600;margin-bottom:10px">Weekly Request Volume</div>
+      <div class="chart-h260"><canvas id="weeklyChart"></canvas></div>
+    </div>
+    <div class="card">
+      <div style="font-weight:600;margin-bottom:10px">Daily Token Usage</div>
+      <div class="chart-h260"><canvas id="dailyTokenChart"></canvas></div>
+    </div>
+  </div>
+</div>
+
+<!-- ── MODEL USAGE ───────────────────────────────────────── -->
+<div class="section">
+  <div class="section-title">Model Usage</div>
+  <div class="grid gc">
+    <div class="card">
+      <div style="font-weight:600;margin-bottom:10px">Requests per Model</div>
+      <div class="chart-h260"><canvas id="modelChart"></canvas></div>
+    </div>
+    <div class="card">
+      <div style="font-weight:600;margin-bottom:10px">Token Distribution per Model</div>
+      <div class="chart-h260"><canvas id="tokenModelChart"></canvas></div>
+    </div>
+  </div>
+</div>
+
+<!-- ── TIME PATTERNS ─────────────────────────────────────── -->
+<div class="section">
+  <div class="section-title">Time Patterns</div>
+  <div class="grid gc">
+    <div class="card">
+      <div style="font-weight:600;margin-bottom:10px">Requests by Hour of Day</div>
+      <div class="chart-h260"><canvas id="hourChart"></canvas></div>
+    </div>
+    <div class="card">
+      <div style="font-weight:600;margin-bottom:10px">Day-of-Week Breakdown</div>
+      <div class="chart-h260"><canvas id="dowChart"></canvas></div>
+    </div>
+  </div>
+  <div class="grid gc" style="margin-top:14px">
+    <div class="card">
+      <div style="font-weight:600;margin-bottom:12px">Hour × Day-of-Week Intensity (requests)</div>
+      <div style="font-size:.78rem;color:var(--muted);margin-bottom:8px">Rows = hours 0–23 &nbsp;|&nbsp; Cols = Mon–Sun</div>
+      <div id="intensityGrid" class="intensity-grid" style="grid-template-columns:repeat(7,1fr);max-width:340px"></div>
+      <div style="display:flex;gap:16px;margin-top:8px;font-size:.78rem;color:var(--muted)">
+        <span>Mon</span><span>Tue</span><span>Wed</span><span>Thu</span><span>Fri</span><span>Sat</span><span>Sun</span>
+      </div>
+    </div>
+    <div class="card">
+      <div style="font-weight:600;margin-bottom:10px">Session Depth Distribution</div>
+      <div class="chart-h260"><canvas id="sessionDepthChart"></canvas></div>
+    </div>
+  </div>
+</div>
+
+<!-- ── TOOL USAGE ────────────────────────────────────────── -->
+<div class="section">
+  <div class="section-title">Tool Usage</div>
+  <div class="grid gc">
+    <div class="card">
+      <div style="font-weight:600;margin-bottom:16px">Top Tools Called</div>
+      <table>
+        <thead><tr><th>Tool</th><th>Calls</th><th>Share</th></tr></thead>
+        <tbody id="toolTable"></tbody>
+      </table>
+    </div>
+    <div class="card">
+      <div style="font-weight:600;margin-bottom:10px">Tool Call Distribution</div>
+      <div class="chart-h260"><canvas id="toolChart"></canvas></div>
+    </div>
+  </div>
+</div>
+
+<!-- ── MESSAGE PATTERNS ──────────────────────────────────── -->
+<div class="section">
+  <div class="section-title">Message Patterns</div>
+  <div class="grid g2">
+    <div class="card">
+      <div style="font-weight:600;margin-bottom:12px">Top Keywords</div>
+      <div id="keywordTags"></div>
+    </div>
+    <div class="card">
+      <table>
+        <thead><tr><th>Metric</th><th>Value</th></tr></thead>
+        <tbody>
+          <tr><td>Avg message length</td><td class="blue">15 chars</td></tr>
+          <tr><td>Max message length</td><td class="blue">15 chars</td></tr>
+          <tr><td>Most used mode</td><td class="green">agent</td></tr>
+          <tr><td>Avg prompt tokens / req</td><td class="yellow">0</td></tr>
+          <tr><td>Avg output tokens / req</td><td class="yellow">0</td></tr>
+          <tr><td>Median response time</td><td class="purple">N/A</td></tr>
+          <tr><td>Token efficiency (out/prompt)</td><td class="cyan">0</td></tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+</div>
+
+<!-- ── STREAKS &amp; PRODUCTIVITY ─────────────────────────── -->
+<div class="section">
+  <div class="section-title">Streaks &amp; Productivity</div>
+  <div class="grid g4">
+    <div class="card">
+      <div class="stat-label">Current Streak</div>
+      <div class="stat-value green">0</div>
+      <div class="stat-sub">consecutive active days</div>
+    </div>
+    <div class="card">
+      <div class="stat-label">Longest Streak</div>
+      <div class="stat-value yellow">1</div>
+      <div class="stat-sub">consecutive active days</div>
+    </div>
+    <div class="card">
+      <div class="stat-label">Intensity Score</div>
+      <div class="stat-value blue">3.4</div>
+      <div class="stat-sub">out of 100 · composite metric</div>
+    </div>
+    <div class="card">
+      <div class="stat-label">Est. API Value</div>
+      <div class="stat-value purple">$0.00</div>
+      <div class="stat-sub">based on public API rates</div>
+    </div>
+  </div>
+  <div class="grid gc" style="margin-top:14px">
+    <div class="card">
+      <div style="font-weight:600;margin-bottom:10px">Request Intent Breakdown</div>
+      <div class="chart-h260"><canvas id="intentChart"></canvas></div>
+    </div>
+    <div class="card">
+      <div style="font-weight:600;margin-bottom:10px">Daily Requests with 7-Day Rolling Avg</div>
+      <div class="chart-h260"><canvas id="rollingChart"></canvas></div>
+    </div>
+  </div>
+</div>
+
+<!-- ── LATENCY DEEP DIVE ───────────────────────────────────── -->
+<div class="section">
+  <div class="section-title">Latency Deep Dive</div>
+  <div class="grid gc">
+    <div class="card">
+      <div style="font-weight:600;margin-bottom:10px">Response Time Percentiles</div>
+      <div class="chart-h260"><canvas id="latencyPercChart"></canvas></div>
+    </div>
+    <div class="card">
+      <div style="font-weight:600;margin-bottom:10px">Mode Distribution</div>
+      <div class="chart-h260"><canvas id="modeChart"></canvas></div>
+    </div>
+  </div>
+</div>
+
+<!-- ── LANGUAGE &amp; FILE INSIGHTS ─────────────────────────── -->
+<div class="section">
+  <div class="section-title">Language &amp; File Insights</div>
+  <div class="grid gc">
+    <div class="card">
+      <div style="font-weight:600;margin-bottom:10px">Languages / Files Mentioned in Requests</div>
+      <div class="chart-h260"><canvas id="langChart"></canvas></div>
+    </div>
+    <div class="card">
+      <div style="font-weight:600;margin-bottom:10px">Estimated API Value by Model (USD)</div>
+      <div class="chart-h260"><canvas id="costChart"></canvas></div>
+      <div style="font-size:.75rem;color:var(--muted);margin-top:8px">* Based on public API pricing. Copilot is subscription-based — this shows compute value only.</div>
+    </div>
+  </div>
+</div>
+
+<!-- ── TOP SESSIONS ────────────────────────────────────────── -->
+<div class="section">
+  <div class="section-title">Top Sessions by Request Count</div>
+  <div class="card">
+    <table>
+      <thead><tr><th>#</th><th>Session ID</th><th>Started</th><th>Requests</th><th>Tokens</th><th>Model(s)</th></tr></thead>
+      <tbody id="topSessionsTable"></tbody>
+    </table>
+  </div>
+</div>
+
+<footer>
+  GenAI Usage Dashboard &nbsp;·&nbsp; Generated 2026-05-13 16:07 &nbsp;·&nbsp;
+  Powered by <a href="https://github.com/features/copilot" target="_blank">GitHub Copilot</a> logs
+</footer>
+
+</main>
+
+<script>
+// ── Constants ────────────────────────────────────────────
+const B='#58a6ff',G='#3fb950',Y='#d29922',R='#f78166',P='#bc8cff',C='#39d353',O='#ff8c00';
+const PALETTE=[B,G,Y,R,P,C,O,'#e07b39','#88d4ab','#b392f0'];
+const THEME_KEY='genai-dashboard-theme';
+const root=document.documentElement;
+const themeToggle=document.getElementById('themeToggle');
+let GRID='';
+let TXT='';
+
+function getThemeColor(name, fallback=''){
+  return getComputedStyle(root).getPropertyValue(name).trim() || fallback;
+}
+
+function syncChartDefaults(){
+  GRID = getThemeColor('--chart-grid', 'rgba(48,54,61,.8)');
+  TXT = getThemeColor('--chart-text', '#8b949e');
+  Chart.defaults.color = TXT;
+  Chart.defaults.font.family = '"Manrope","Segoe UI",sans-serif';
+  Chart.defaults.plugins.tooltip.backgroundColor = getThemeColor('--tooltip-bg', 'rgba(7,17,26,.94)');
+  Chart.defaults.plugins.tooltip.titleColor = getThemeColor('--tooltip-title', '#f3f7f6');
+  Chart.defaults.plugins.tooltip.bodyColor = getThemeColor('--tooltip-body', '#d7e6ea');
+  Chart.defaults.plugins.tooltip.borderColor = getThemeColor('--tooltip-border', 'rgba(83,209,193,.28)');
+  Chart.defaults.plugins.tooltip.borderWidth = 1;
+  Chart.defaults.plugins.tooltip.padding = 12;
+  Chart.defaults.plugins.legend.labels.usePointStyle = true;
+}
+
+function syncThemeToggleLabel(){
+  if(!themeToggle) return;
+  const isLight = root.dataset.theme === 'light';
+  themeToggle.textContent = `Theme: ${isLight ? 'Light' : 'Dark'}`;
+  themeToggle.setAttribute('title', `Switch to ${isLight ? 'dark' : 'light'} theme`);
+  themeToggle.setAttribute('aria-label', `Switch to ${isLight ? 'dark' : 'light'} theme`);
+}
+
+function updateChartsTheme(){
+  Object.values(Chart.instances).forEach(chart=>{
+    if(chart.options.scales){
+      ['x','y','r'].forEach(axis=>{
+        if(chart.options.scales[axis]){
+          if(chart.options.scales[axis].grid){
+            chart.options.scales[axis].grid.color = GRID;
+          }
+          if(chart.options.scales[axis].ticks){
+            chart.options.scales[axis].ticks.color = TXT;
+          }
+        }
+      });
+    }
+    if(chart.options.plugins?.legend?.labels){
+      chart.options.plugins.legend.labels.color = TXT;
+    }
+    if(chart.options.plugins?.tooltip){
+      chart.options.plugins.tooltip.backgroundColor = getThemeColor('--tooltip-bg', chart.options.plugins.tooltip.backgroundColor);
+      chart.options.plugins.tooltip.titleColor = getThemeColor('--tooltip-title', chart.options.plugins.tooltip.titleColor);
+      chart.options.plugins.tooltip.bodyColor = getThemeColor('--tooltip-body', chart.options.plugins.tooltip.bodyColor);
+      chart.options.plugins.tooltip.borderColor = getThemeColor('--tooltip-border', chart.options.plugins.tooltip.borderColor);
+    }
+    if(chart.config.type === 'doughnut'){
+      chart.data.datasets.forEach(dataset=>{
+        dataset.borderColor = getThemeColor('--surface-strong', '#161b22');
+      });
+    }
+    chart.update();
+  });
+}
+
+syncChartDefaults();
+syncThemeToggleLabel();
+
+function mkBar(id,labels,data,color,opts={}){
+  new Chart(document.getElementById(id),{
+    type:'bar',
+    data:{labels,datasets:[{data,backgroundColor:color||B,borderRadius:3,borderSkipped:false}]},
+    options:{
+      responsive:true,maintainAspectRatio:false,
+      plugins:{legend:{display:false},...(opts.plugins||{})},
+      scales:{
+        x:{grid:{color:GRID},ticks:{maxRotation:45,font:{size:10}}},
+        y:{grid:{color:GRID},beginAtZero:true,ticks:{precision:0}}
+      },...opts
+    }
+  });
+}
+
+function mkLine(id,labels,datasets,opts={}){
+  new Chart(document.getElementById(id),{
+    type:'line',
+    data:{labels,datasets},
+    options:{
+      responsive:true,maintainAspectRatio:false,
+      plugins:{legend:{display:datasets.length>1,...(opts.legendOpts||{})}},
+      scales:{
+        x:{grid:{color:GRID},ticks:{maxRotation:45,font:{size:10}}},
+        y:{grid:{color:GRID},beginAtZero:true,ticks:{precision:0}}
+      },...opts
+    }
+  });
+}
+
+function mkDoughnut(id,labels,data){
+  new Chart(document.getElementById(id),{
+    type:'doughnut',
+    data:{labels,datasets:[{data,backgroundColor:PALETTE,borderWidth:2,borderColor:getThemeColor('--surface-strong', '#161b22')}]},
+    options:{
+      responsive:true,maintainAspectRatio:false,
+      plugins:{legend:{position:'right',labels:{boxWidth:12,padding:10,font:{size:10}}}}
+    }
+  });
+}
+
+// ── Data ─────────────────────────────────────────────────
+const dailyLabels   = ["2026-02-03", "2026-02-04", "2026-02-05", "2026-02-06", "2026-02-07", "2026-02-08", "2026-02-09", "2026-02-10", "2026-02-11", "2026-02-12", "2026-02-13", "2026-02-14", "2026-02-15", "2026-02-16", "2026-02-17", "2026-02-18", "2026-02-19", "2026-02-20", "2026-02-21", "2026-02-22", "2026-02-23", "2026-02-24", "2026-02-25", "2026-02-26", "2026-02-27", "2026-02-28", "2026-03-01", "2026-03-02", "2026-03-03", "2026-03-04", "2026-03-05", "2026-03-06", "2026-03-07", "2026-03-08", "2026-03-09", "2026-03-10", "2026-03-11", "2026-03-12", "2026-03-13", "2026-03-14", "2026-03-15", "2026-03-16", "2026-03-17", "2026-03-18", "2026-03-19", "2026-03-20", "2026-03-21", "2026-03-22", "2026-03-23", "2026-03-24", "2026-03-25", "2026-03-26", "2026-03-27", "2026-03-28", "2026-03-29", "2026-03-30", "2026-03-31", "2026-04-01", "2026-04-02", "2026-04-03", "2026-04-04", "2026-04-05", "2026-04-06", "2026-04-07", "2026-04-08", "2026-04-09", "2026-04-10", "2026-04-11", "2026-04-12", "2026-04-13", "2026-04-14", "2026-04-15", "2026-04-16", "2026-04-17", "2026-04-18", "2026-04-19", "2026-04-20", "2026-04-21", "2026-04-22", "2026-04-23", "2026-04-24", "2026-04-25", "2026-04-26", "2026-04-27", "2026-04-28", "2026-04-29", "2026-04-30", "2026-05-01", "2026-05-02", "2026-05-03", "2026-05-04", "2026-05-05", "2026-05-06", "2026-05-07", "2026-05-08", "2026-05-09", "2026-05-10", "2026-05-11", "2026-05-12", "2026-05-13"];
+const dailyReqs     = [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0];
+const dailyToks     = [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0];
+const cumToks       = [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0];
+const weekLabels    = ["2026-02-03", "2026-02-10", "2026-02-17", "2026-02-24", "2026-03-03", "2026-03-10", "2026-03-17", "2026-03-24", "2026-03-31", "2026-04-07", "2026-04-14", "2026-04-21", "2026-04-28", "2026-05-05", "2026-05-12"];
+const weekReqs      = [0, 0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0];
+const weekToks      = [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0];
+const modelLabels   = ["gpt-5-mini"];
+const modelValues   = [1];
+const tokenLabels   = ["gpt-5-mini"];
+const modelPromptValues = [0];
+const modelOutputValues = [0];
+const dailyPromptValues = [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0];
+const dailyOutputValues = [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0];
+const hourValues    = [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0];
+const dowLabels     = ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"];
+const dowValues     = [0, 0, 0, 1, 0, 0, 0];
+const sessionDepthLabels = ["1", "2-5", "6-10", "11-20", "21+"];
+const sessionDepthValues = [1, 0, 0, 0, 0];
+const toolData      = [];
+const keywords      = [["run", 1]];
+const heatmap       = [{"date": "2026-02-03", "count": 0, "max": 1}, {"date": "2026-02-04", "count": 0, "max": 1}, {"date": "2026-02-05", "count": 0, "max": 1}, {"date": "2026-02-06", "count": 0, "max": 1}, {"date": "2026-02-07", "count": 0, "max": 1}, {"date": "2026-02-08", "count": 0, "max": 1}, {"date": "2026-02-09", "count": 0, "max": 1}, {"date": "2026-02-10", "count": 0, "max": 1}, {"date": "2026-02-11", "count": 0, "max": 1}, {"date": "2026-02-12", "count": 0, "max": 1}, {"date": "2026-02-13", "count": 0, "max": 1}, {"date": "2026-02-14", "count": 0, "max": 1}, {"date": "2026-02-15", "count": 0, "max": 1}, {"date": "2026-02-16", "count": 0, "max": 1}, {"date": "2026-02-17", "count": 0, "max": 1}, {"date": "2026-02-18", "count": 0, "max": 1}, {"date": "2026-02-19", "count": 1, "max": 1}, {"date": "2026-02-20", "count": 0, "max": 1}, {"date": "2026-02-21", "count": 0, "max": 1}, {"date": "2026-02-22", "count": 0, "max": 1}, {"date": "2026-02-23", "count": 0, "max": 1}, {"date": "2026-02-24", "count": 0, "max": 1}, {"date": "2026-02-25", "count": 0, "max": 1}, {"date": "2026-02-26", "count": 0, "max": 1}, {"date": "2026-02-27", "count": 0, "max": 1}, {"date": "2026-02-28", "count": 0, "max": 1}, {"date": "2026-03-01", "count": 0, "max": 1}, {"date": "2026-03-02", "count": 0, "max": 1}, {"date": "2026-03-03", "count": 0, "max": 1}, {"date": "2026-03-04", "count": 0, "max": 1}, {"date": "2026-03-05", "count": 0, "max": 1}, {"date": "2026-03-06", "count": 0, "max": 1}, {"date": "2026-03-07", "count": 0, "max": 1}, {"date": "2026-03-08", "count": 0, "max": 1}, {"date": "2026-03-09", "count": 0, "max": 1}, {"date": "2026-03-10", "count": 0, "max": 1}, {"date": "2026-03-11", "count": 0, "max": 1}, {"date": "2026-03-12", "count": 0, "max": 1}, {"date": "2026-03-13", "count": 0, "max": 1}, {"date": "2026-03-14", "count": 0, "max": 1}, {"date": "2026-03-15", "count": 0, "max": 1}, {"date": "2026-03-16", "count": 0, "max": 1}, {"date": "2026-03-17", "count": 0, "max": 1}, {"date": "2026-03-18", "count": 0, "max": 1}, {"date": "2026-03-19", "count": 0, "max": 1}, {"date": "2026-03-20", "count": 0, "max": 1}, {"date": "2026-03-21", "count": 0, "max": 1}, {"date": "2026-03-22", "count": 0, "max": 1}, {"date": "2026-03-23", "count": 0, "max": 1}, {"date": "2026-03-24", "count": 0, "max": 1}, {"date": "2026-03-25", "count": 0, "max": 1}, {"date": "2026-03-26", "count": 0, "max": 1}, {"date": "2026-03-27", "count": 0, "max": 1}, {"date": "2026-03-28", "count": 0, "max": 1}, {"date": "2026-03-29", "count": 0, "max": 1}, {"date": "2026-03-30", "count": 0, "max": 1}, {"date": "2026-03-31", "count": 0, "max": 1}, {"date": "2026-04-01", "count": 0, "max": 1}, {"date": "2026-04-02", "count": 0, "max": 1}, {"date": "2026-04-03", "count": 0, "max": 1}, {"date": "2026-04-04", "count": 0, "max": 1}, {"date": "2026-04-05", "count": 0, "max": 1}, {"date": "2026-04-06", "count": 0, "max": 1}, {"date": "2026-04-07", "count": 0, "max": 1}, {"date": "2026-04-08", "count": 0, "max": 1}, {"date": "2026-04-09", "count": 0, "max": 1}, {"date": "2026-04-10", "count": 0, "max": 1}, {"date": "2026-04-11", "count": 0, "max": 1}, {"date": "2026-04-12", "count": 0, "max": 1}, {"date": "2026-04-13", "count": 0, "max": 1}, {"date": "2026-04-14", "count": 0, "max": 1}, {"date": "2026-04-15", "count": 0, "max": 1}, {"date": "2026-04-16", "count": 0, "max": 1}, {"date": "2026-04-17", "count": 0, "max": 1}, {"date": "2026-04-18", "count": 0, "max": 1}, {"date": "2026-04-19", "count": 0, "max": 1}, {"date": "2026-04-20", "count": 0, "max": 1}, {"date": "2026-04-21", "count": 0, "max": 1}, {"date": "2026-04-22", "count": 0, "max": 1}, {"date": "2026-04-23", "count": 0, "max": 1}, {"date": "2026-04-24", "count": 0, "max": 1}, {"date": "2026-04-25", "count": 0, "max": 1}, {"date": "2026-04-26", "count": 0, "max": 1}, {"date": "2026-04-27", "count": 0, "max": 1}, {"date": "2026-04-28", "count": 0, "max": 1}, {"date": "2026-04-29", "count": 0, "max": 1}, {"date": "2026-04-30", "count": 0, "max": 1}, {"date": "2026-05-01", "count": 0, "max": 1}, {"date": "2026-05-02", "count": 0, "max": 1}, {"date": "2026-05-03", "count": 0, "max": 1}, {"date": "2026-05-04", "count": 0, "max": 1}, {"date": "2026-05-05", "count": 0, "max": 1}, {"date": "2026-05-06", "count": 0, "max": 1}, {"date": "2026-05-07", "count": 0, "max": 1}, {"date": "2026-05-08", "count": 0, "max": 1}, {"date": "2026-05-09", "count": 0, "max": 1}, {"date": "2026-05-10", "count": 0, "max": 1}, {"date": "2026-05-11", "count": 0, "max": 1}, {"date": "2026-05-12", "count": 0, "max": 1}, {"date": "2026-05-13", "count": 0, "max": 1}];
+const hourDowMatrix = [[0, 0, 0, 0, 0, 0, 0], [0, 0, 0, 0, 0, 0, 0], [0, 0, 0, 0, 0, 0, 0], [0, 0, 0, 0, 0, 0, 0], [0, 0, 0, 0, 0, 0, 0], [0, 0, 0, 0, 0, 0, 0], [0, 0, 0, 0, 0, 0, 0], [0, 0, 0, 0, 0, 0, 0], [0, 0, 0, 0, 0, 0, 0], [0, 0, 0, 0, 0, 0, 0], [0, 0, 0, 0, 0, 0, 0], [0, 0, 0, 0, 0, 0, 0], [0, 0, 0, 0, 0, 0, 0], [0, 0, 0, 0, 0, 0, 0], [0, 0, 0, 0, 0, 0, 0], [0, 0, 0, 0, 0, 0, 0], [0, 0, 0, 0, 0, 0, 0], [0, 0, 0, 0, 0, 0, 0], [0, 0, 0, 0, 0, 0, 0], [0, 0, 0, 0, 0, 0, 0], [0, 0, 0, 1, 0, 0, 0], [0, 0, 0, 0, 0, 0, 0], [0, 0, 0, 0, 0, 0, 0], [0, 0, 0, 0, 0, 0, 0]];
+
+// ── Identity/User Filter Data ─────────────────────────────
+const identityCatalog = {};
+const rawRequests     = [{"session_id": "27fd6f8d-7688-4199-b6e6-b88f3f5c43c5", "date": "2026-02-19", "hour": 20, "dow": 3, "model": "gpt-5-mini", "prompt_tokens": 0, "output_tokens": 0, "tools": [], "identity": {}}];
+
+// ── User Filter State & Logic ─────────────────────────────
+let activeFilter = { field: '', value: '' };
+const filterFieldSelect = document.getElementById('filterField');
+const filterValueInput = document.getElementById('filterValue');
+const applyFilterBtn = document.getElementById('applyFilterBtn');
+const clearFilterBtn = document.getElementById('clearFilterBtn');
+const filterStatus = document.getElementById('filterStatus');
+const userFilterPanel = document.getElementById('userFilterPanel');
+
+// Common identity field types for filtering
+const COMMON_IDENTITY_FIELDS = ['attuid', 'attid', 'email', 'userid', 'username', 'employeeid'];
+
+function initUserFilter() {
+  // Always add common identity field options
+  COMMON_IDENTITY_FIELDS.forEach(f => {
+    const opt = document.createElement('option');
+    opt.value = f;
+    opt.textContent = f.toUpperCase();
+    filterFieldSelect.appendChild(opt);
+  });
+  
+  // Also add any fields found in the catalog
+  const fields = Object.keys(identityCatalog).sort();
+  fields.forEach(f => {
+    const leafName = f.includes('.') ? f.split('.').pop() : f;
+    // Skip if already in common fields
+    if (COMMON_IDENTITY_FIELDS.includes(leafName.toLowerCase())) return;
+    const opt = document.createElement('option');
+    opt.value = f;
+    const valCount = identityCatalog[f].length;
+    opt.textContent = `${leafName} (${valCount} user${valCount !== 1 ? 's' : ''})`;
+    filterFieldSelect.appendChild(opt);
+  });
+  
+  // Show hint if no identity data exists but filter is still usable
+  if (fields.length === 0) {
+    filterStatus.textContent = 'Enter ATTUID to filter';
+    filterStatus.classList.add('no-identity-hint');
+  }
+  
+  // Auto-fill dropdown when a field with known values is selected
+  filterFieldSelect.addEventListener('change', () => {
+    const field = filterFieldSelect.value;
+    if (field && identityCatalog[field]) {
+      const vals = identityCatalog[field];
+      if (vals.length <= 20) {
+        let dl = document.getElementById('filterValueList');
+        if (!dl) {
+          dl = document.createElement('datalist');
+          dl.id = 'filterValueList';
+          filterValueInput.setAttribute('list', 'filterValueList');
+          filterValueInput.parentNode.appendChild(dl);
+        }
+        dl.innerHTML = '';
+        vals.forEach(v => {
+          const o = document.createElement('option');
+          o.value = v;
+          dl.appendChild(o);
+        });
+      }
+    }
+  });
+}
+
+function getFilteredRequests() {
+  if (!activeFilter.field && !activeFilter.value) {
+    return rawRequests;
+  }
+  const fieldNorm = activeFilter.field.toLowerCase().replace(/[^a-z0-9]/g, '');
+  const valueNorm = activeFilter.value.trim().toLowerCase();
+  
+  // If no value entered, return all
+  if (!valueNorm) {
+    return rawRequests;
+  }
+  
+  return rawRequests.filter(r => {
+    // Search in identity fields if they exist
+    if (r.identity && Object.keys(r.identity).length > 0) {
+      for (const [fName, fVal] of Object.entries(r.identity)) {
+        const fNameNorm = fName.toLowerCase().replace(/[^a-z0-9]/g, '');
+        const fLeafNorm = fName.split('.').pop().toLowerCase().replace(/[^a-z0-9]/g, '');
+        const fieldMatch = !fieldNorm || fNameNorm.includes(fieldNorm) || fLeafNorm.includes(fieldNorm);
+        const valMatch = String(fVal).toLowerCase() === valueNorm || String(fVal).toLowerCase().includes(valueNorm);
+        if (fieldMatch && valMatch) return true;
+      }
+    }
+    
+    // Also search in session_id for partial matches (useful when no identity fields)
+    if (r.session_id && r.session_id.toLowerCase().includes(valueNorm)) {
+      return true;
+    }
+    
+    return false;
+  });
+}
+
+function recalculateStats(filteredReqs) {
+  // Recalculate daily requests/tokens
+  const dayReqMap = {};
+  const dayTokMap = {};
+  const dayPromptMap = {};
+  const dayOutputMap = {};
+  dailyLabels.forEach(d => { dayReqMap[d] = 0; dayTokMap[d] = 0; dayPromptMap[d] = 0; dayOutputMap[d] = 0; });
+  
+  const modelCounts = {};
+  const modelPrompt = {};
+  const modelOutput = {};
+  const hourCounts = Array(24).fill(0);
+  const dowCounts = [0,0,0,0,0,0,0];
+  const hourDow = Array.from({length:24}, ()=>Array(7).fill(0));
+  const sessionReqCounts = {};
+  const toolCalls = {};
+  let totalPrompt = 0, totalOutput = 0;
+  
+  filteredReqs.forEach(r => {
+    if (r.date && dayReqMap.hasOwnProperty(r.date)) {
+      dayReqMap[r.date]++;
+      dayTokMap[r.date] += (r.prompt_tokens || 0) + (r.output_tokens || 0);
+      dayPromptMap[r.date] += r.prompt_tokens || 0;
+      dayOutputMap[r.date] += r.output_tokens || 0;
+    }
+    const model = r.model || 'unknown';
+    modelCounts[model] = (modelCounts[model] || 0) + 1;
+    modelPrompt[model] = (modelPrompt[model] || 0) + (r.prompt_tokens || 0);
+    modelOutput[model] = (modelOutput[model] || 0) + (r.output_tokens || 0);
+    totalPrompt += r.prompt_tokens || 0;
+    totalOutput += r.output_tokens || 0;
+    if (r.hour !== undefined) {
+      hourCounts[r.hour]++;
+      if (r.dow !== undefined) {
+        dowCounts[r.dow]++;
+        hourDow[r.hour][r.dow]++;
+      }
+    }
+    sessionReqCounts[r.session_id] = (sessionReqCounts[r.session_id] || 0) + 1;
+    if (r.tools) {
+      r.tools.forEach(t => { toolCalls[t] = (toolCalls[t] || 0) + 1; });
+    }
+  });
+  
+  return {
+    dailyReqs: dailyLabels.map(d => dayReqMap[d]),
+    dailyToks: dailyLabels.map(d => dayTokMap[d]),
+    dailyPrompt: dailyLabels.map(d => dayPromptMap[d]),
+    dailyOutput: dailyLabels.map(d => dayOutputMap[d]),
+    cumToks: dailyLabels.reduce((acc, d, i) => {
+      acc.push((acc[i-1] || 0) + dayTokMap[d]);
+      return acc;
+    }, []),
+    modelCounts,
+    modelPrompt,
+    modelOutput,
+    hourCounts,
+    dowCounts,
+    hourDow,
+    totalRequests: filteredReqs.length,
+    totalPrompt,
+    totalOutput,
+    activeDays: Object.values(dayReqMap).filter(v => v > 0).length,
+    totalSessions: Object.keys(sessionReqCounts).length,
+    toolCalls,
+    heatmap: dailyLabels.map(d => ({date: d, count: dayReqMap[d]})),
+  };
+}
+
+function updateDashboardWithFilter() {
+  const filtered = getFilteredRequests();
+  const stats = recalculateStats(filtered);
+  
+  // Update hero stats
+  document.querySelectorAll('.hero-stat strong').forEach((el, i) => {
+    if (i === 0) el.textContent = stats.totalRequests;
+    if (i === 1) el.textContent = formatNum(stats.totalPrompt + stats.totalOutput);
+    if (i === 2) el.textContent = stats.activeDays;
+  });
+  
+  // Update KPI cards
+  const kpiCards = document.querySelectorAll('.section .card .stat-value');
+  if (kpiCards[0]) kpiCards[0].textContent = stats.activeDays;
+  if (kpiCards[1]) kpiCards[1].textContent = stats.totalSessions;
+  if (kpiCards[2]) kpiCards[2].textContent = stats.totalRequests;
+  if (kpiCards[4]) kpiCards[4].textContent = formatNum(stats.totalPrompt + stats.totalOutput);
+  
+  // Update charts
+  updateChartData('dailyReqChart', stats.dailyReqs);
+  updateChartData('cumulativeChart', stats.cumToks);
+  updateStackedChartData('dailyTokenChart', [stats.dailyPrompt, stats.dailyOutput]);
+  updateChartWithNewLabels('modelChart', Object.keys(stats.modelCounts), Object.values(stats.modelCounts));
+  updateStackedChartWithNewLabels('tokenModelChart', 
+    Object.keys(stats.modelPrompt),
+    [Object.values(stats.modelPrompt), Object.values(stats.modelOutput)]
+  );
+  updateChartData('hourChart', stats.hourCounts);
+  updateChartData('dowChart', stats.dowCounts);
+  
+  // Update heatmap
+  renderHeatmapWithData(stats.heatmap);
+  
+  // Update intensity grid
+  renderIntensityGridWithData(stats.hourDow);
+  
+  // Update tool chart/table
+  const sortedTools = Object.entries(stats.toolCalls).sort((a,b) => b[1] - a[1]).slice(0, 15);
+  updateToolTable(sortedTools);
+  updateChartWithNewLabels('toolChart', sortedTools.map(t=>t[0]), sortedTools.map(t=>t[1]));
+  
+  // Update filter status
+  filterStatus.textContent = `Showing ${stats.totalRequests} of ${rawRequests.length} requests`;
+  filterStatus.classList.add('active');
+  clearFilterBtn.style.display = 'inline-block';
+}
+
+function formatNum(n) {
+  if (n >= 1000000) return (n/1000000).toFixed(1) + 'M';
+  if (n >= 1000) return (n/1000).toFixed(1) + 'k';
+  return String(n);
+}
+
+function updateChartData(chartId, newData) {
+  const chart = Chart.getChart(chartId);
+  if (chart) {
+    chart.data.datasets[0].data = newData;
+    chart.update();
+  }
+}
+
+function updateStackedChartData(chartId, datasetsData) {
+  const chart = Chart.getChart(chartId);
+  if (chart) {
+    datasetsData.forEach((data, i) => {
+      if (chart.data.datasets[i]) chart.data.datasets[i].data = data;
+    });
+    chart.update();
+  }
+}
+
+function updateChartWithNewLabels(chartId, labels, data) {
+  const chart = Chart.getChart(chartId);
+  if (chart) {
+    chart.data.labels = labels;
+    chart.data.datasets[0].data = data;
+    chart.update();
+  }
+}
+
+function updateStackedChartWithNewLabels(chartId, labels, datasetsData) {
+  const chart = Chart.getChart(chartId);
+  if (chart) {
+    chart.data.labels = labels;
+    datasetsData.forEach((data, i) => {
+      if (chart.data.datasets[i]) chart.data.datasets[i].data = data;
+    });
+    chart.update();
+  }
+}
+
+function renderHeatmapWithData(data) {
+  hmContainer.innerHTML = '';
+  const maxCount = Math.max(...data.map(d => d.count), 1);
+  const colors = [
+    getThemeColor('--heatmap-empty', '#161b22'),
+    getThemeColor('--heatmap-1', '#0e4429'),
+    getThemeColor('--heatmap-2', '#006d32'),
+    getThemeColor('--heatmap-3', '#26a641'),
+    getThemeColor('--heatmap-4', '#39d353'),
+  ];
+  data.forEach(d => {
+    const cell = document.createElement('div');
+    cell.className = 'hm-cell';
+    cell.title = `${d.date}: ${d.count} requests`;
+    const pct = d.count / maxCount;
+    if (d.count === 0) cell.style.background = colors[0];
+    else if (pct < 0.25) cell.style.background = colors[1];
+    else if (pct < 0.50) cell.style.background = colors[2];
+    else if (pct < 0.75) cell.style.background = colors[3];
+    else cell.style.background = colors[4];
+    hmContainer.appendChild(cell);
+  });
+}
+
+function renderIntensityGridWithData(matrix) {
+  igContainer.innerHTML = '';
+  const maxVal = Math.max(...matrix.flat(), 1);
+  const intensityRgb = getThemeColor('--intensity-rgb', '88,166,255');
+  matrix.forEach((row, h) => {
+    row.forEach((val, d) => {
+      const cell = document.createElement('div');
+      cell.className = 'ig-cell';
+      cell.title = `${String(h).padStart(2,'0')}:00 ${['Mon','Tue','Wed','Thu','Fri','Sat','Sun'][d]}: ${val}`;
+      const a = val / maxVal;
+      cell.style.background = `rgba(${intensityRgb},${a.toFixed(2)})`;
+      cell.style.minHeight = '14px';
+      igContainer.appendChild(cell);
+    });
+  });
+}
+
+function updateToolTable(toolData) {
+  const tbody = document.getElementById('toolTable');
+  tbody.innerHTML = '';
+  const total = toolData.reduce((s, t) => s + t[1], 0);
+  toolData.forEach(([name, count]) => {
+    const pct = total > 0 ? Math.round(count / total * 100) : 0;
+    const row = document.createElement('tr');
+    row.innerHTML = `
+      <td>${name}</td>
+      <td><span class="badge">${count}</span></td>
+      <td>
+        <div class="bar-cell">
+          <div class="mini-bar" style="width:${Math.min(pct*1.8,120)}px"></div>
+          <span style="font-size:.75rem;color:var(--muted)">${pct}%</span>
+        </div>
+      </td>`;
+    tbody.appendChild(row);
+  });
+}
+
+function clearFilter() {
+  activeFilter = { field: '', value: '' };
+  filterFieldSelect.value = '';
+  filterValueInput.value = '';
+  filterStatus.textContent = '';
+  filterStatus.classList.remove('active');
+  clearFilterBtn.style.display = 'none';
+  
+  // Restore original data
+  updateChartData('dailyReqChart', dailyReqs);
+  updateChartData('cumulativeChart', cumToks);
+  updateStackedChartData('dailyTokenChart', [dailyPromptValues, dailyOutputValues]);
+  updateChartWithNewLabels('modelChart', modelLabels, modelValues);
+  updateStackedChartWithNewLabels('tokenModelChart', tokenLabels, [modelPromptValues, modelOutputValues]);
+  updateChartData('hourChart', hourValues);
+  updateChartData('dowChart', dowValues);
+  renderHeatmap();
+  renderIntensityGrid();
+  updateToolTable(toolData);
+  updateChartWithNewLabels('toolChart', toolData.map(t=>t[0]), toolData.map(t=>t[1]));
+  
+  // Restore hero stats (reload page for full restore, or store originals)
+  location.reload();
+}
+
+// Initialize filter UI
+initUserFilter();
+if (applyFilterBtn) {
+  applyFilterBtn.addEventListener('click', () => {
+    activeFilter.field = filterFieldSelect.value;
+    activeFilter.value = filterValueInput.value;
+    if (activeFilter.field || activeFilter.value) {
+      updateDashboardWithFilter();
+    }
+  });
+}
+if (clearFilterBtn) {
+  clearFilterBtn.addEventListener('click', clearFilter);
+}
+// Allow Enter key to apply filter
+if (filterValueInput) {
+  filterValueInput.addEventListener('keypress', (e) => {
+    if (e.key === 'Enter') applyFilterBtn.click();
+  });
+}
+
+// ── Activity Heatmap ──────────────────────────────────────
+const hmContainer = document.getElementById('heatmap');
+const hmMax = Math.max(...heatmap.map(d=>d.count), 1);
+function renderHeatmap(){
+  hmContainer.innerHTML = '';
+  const colors = [
+    getThemeColor('--heatmap-empty', '#161b22'),
+    getThemeColor('--heatmap-1', '#0e4429'),
+    getThemeColor('--heatmap-2', '#006d32'),
+    getThemeColor('--heatmap-3', '#26a641'),
+    getThemeColor('--heatmap-4', '#39d353'),
+  ];
+  heatmap.forEach(d=>{
+    const cell = document.createElement('div');
+    cell.className = 'hm-cell';
+    cell.title = `${d.date}: ${d.count} requests`;
+    const pct = d.count / hmMax;
+    if(d.count===0) cell.style.background = colors[0];
+    else if(pct<0.25) cell.style.background = colors[1];
+    else if(pct<0.50) cell.style.background = colors[2];
+    else if(pct<0.75) cell.style.background = colors[3];
+    else cell.style.background = colors[4];
+    hmContainer.appendChild(cell);
+  });
+}
+renderHeatmap();
+
+// ── Daily Requests ────────────────────────────────────────
+mkLine('dailyReqChart', dailyLabels,
+  [{label:'Requests',data:dailyReqs,borderColor:B,backgroundColor:'rgba(88,166,255,.12)',
+    fill:true,tension:.3,pointRadius:dailyReqs.length>60?0:3}]);
+
+// ── Cumulative Tokens ─────────────────────────────────────
+mkLine('cumulativeChart', dailyLabels,
+  [{label:'Cumulative Tokens',data:cumToks,borderColor:G,backgroundColor:'rgba(63,185,80,.1)',
+    fill:true,tension:.4,pointRadius:0}]);
+
+// ── Weekly Volume ─────────────────────────────────────────
+mkBar('weeklyChart', weekLabels, weekReqs, B);
+
+// ── Daily Token Usage ─────────────────────────────────────
+new Chart(document.getElementById('dailyTokenChart'),{
+  type:'bar',
+  data:{
+    labels:dailyLabels,
+    datasets:[
+      {label:'Prompt',data:dailyPromptValues,backgroundColor:'rgba(88,166,255,.7)',borderRadius:2,stack:'tokens'},
+      {label:'Output',data:dailyOutputValues,backgroundColor:'rgba(63,185,80,.7)',borderRadius:2,stack:'tokens'}
+    ]
+  },
+  options:{
+    responsive:true,maintainAspectRatio:false,
+    plugins:{legend:{position:'top',labels:{boxWidth:12,font:{size:10}}}},
+    scales:{
+      x:{grid:{color:GRID},stacked:true,ticks:{maxRotation:45,font:{size:10}}},
+      y:{grid:{color:GRID},beginAtZero:true,stacked:true,ticks:{precision:0}}
+    }
+  }
+});
+
+// ── Model Charts ──────────────────────────────────────────
+mkDoughnut('modelChart', modelLabels, modelValues);
+new Chart(document.getElementById('tokenModelChart'),{
+  type:'bar',
+  data:{
+    labels:tokenLabels,
+    datasets:[
+      {label:'Prompt',data:modelPromptValues,backgroundColor:B,borderRadius:3,stack:'t'},
+      {label:'Output',data:modelOutputValues,backgroundColor:G,borderRadius:3,stack:'t'}
+    ]
+  },
+  options:{
+    responsive:true,maintainAspectRatio:false,
+    plugins:{legend:{position:'top',labels:{boxWidth:12,font:{size:10}}}},
+    scales:{
+      x:{grid:{color:GRID},stacked:true,ticks:{font:{size:10}}},
+      y:{grid:{color:GRID},beginAtZero:true,stacked:true,ticks:{precision:0}}
+    }
+  }
+});
+
+// ── Hour Chart ────────────────────────────────────────────
+const hourLabels=[...Array(24)].map((_,i)=>`${String(i).padStart(2,'0')}:00`);
+mkBar('hourChart', hourLabels, hourValues,
+  hourValues.map((_,i)=>i>=9&&i<=17?G:B));
+
+// ── DoW Chart ─────────────────────────────────────────────
+mkBar('dowChart', dowLabels, dowValues, Y);
+
+// ── Session Depth ─────────────────────────────────────────
+mkBar('sessionDepthChart', sessionDepthLabels, sessionDepthValues, P);
+
+// ── Hour × Day-of-Week Intensity ──────────────────────────
+const igMax = Math.max(...hourDowMatrix.flat(), 1);
+const igContainer = document.getElementById('intensityGrid');
+igContainer.style.gridTemplateRows = `repeat(24,16px)`;
+function renderIntensityGrid(){
+  igContainer.innerHTML = '';
+  const intensityRgb = getThemeColor('--intensity-rgb', '88,166,255');
+  hourDowMatrix.forEach((row,h)=>{
+    row.forEach((val,d)=>{
+      const cell = document.createElement('div');
+      cell.className = 'ig-cell';
+      cell.title = `${String(h).padStart(2,'0')}:00 ${['Mon','Tue','Wed','Thu','Fri','Sat','Sun'][d]}: ${val}`;
+      const a = val/igMax;
+      cell.style.background = `rgba(${intensityRgb},${a.toFixed(2)})`;
+      cell.style.minHeight = '14px';
+      igContainer.appendChild(cell);
+    });
+  });
+}
+renderIntensityGrid();
+
+// ── Tool Table + Chart ────────────────────────────────────
+const toolTotal = toolData.reduce((s,t)=>s+t[1],0);
+const tbody = document.getElementById('toolTable');
+toolData.forEach(([name,count])=>{
+  const pct = toolTotal>0?Math.round(count/toolTotal*100):0;
+  const row = document.createElement('tr');
+  row.innerHTML=`
+    <td>${name}</td>
+    <td><span class="badge">${count}</span></td>
+    <td>
+      <div class="bar-cell">
+        <div class="mini-bar" style="width:${Math.min(pct*1.8,120)}px"></div>
+        <span style="font-size:.75rem;color:var(--muted)">${pct}%</span>
+      </div>
+    </td>`;
+  tbody.appendChild(row);
+});
+mkDoughnut('toolChart', toolData.map(t=>t[0]), toolData.map(t=>t[1]));
+
+// ── Keywords ──────────────────────────────────────────────
+const kwMax = keywords.length>0?keywords[0][1]:1;
+keywords.forEach(([w,c])=>{
+  const span = document.createElement('span');
+  const sz = 0.75 + (c/kwMax)*0.65;
+  span.className='tag';
+  span.style.fontSize = sz+'rem';
+  span.style.opacity  = 0.6+(c/kwMax)*0.4;
+  span.textContent=`${w} (${c})`;
+  document.getElementById('keywordTags').appendChild(span);
+});
+
+// ── New section data ──────────────────────────────────────
+const intentLabels  = ["Chat / Q&A"];
+const intentValues  = [1];
+const rollingAvg    = [0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.14, 0.14, 0.14, 0.14, 0.14, 0.14, 0.14, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0];
+const latencyPercs  = [0, 0, 0, 0, 0];
+const modeLabels2   = ["agent"];
+const modeValues2   = [1];
+const langLabels    = [];
+const langValues    = [];
+const costLabels    = ["gpt-5-mini"];
+const costValues    = [0.0];
+const topSessions   = [{"id": "27fd6f8d", "requests": 1, "date": "2026-02-19", "model": "gpt-5-mini", "tokens": 0}];
+
+// ── Intent Doughnut ───────────────────────────────────────
+mkDoughnut('intentChart', intentLabels, intentValues);
+
+// ── Rolling 7-day avg line ─────────────────────────────────
+new Chart(document.getElementById('rollingChart'),{
+  type:'line',
+  data:{
+    labels:dailyLabels,
+    datasets:[
+      {label:'Daily Requests',data:dailyReqs,borderColor:'rgba(88,166,255,.45)',
+       backgroundColor:'rgba(88,166,255,.07)',fill:true,tension:.3,pointRadius:0},
+      {label:'7-day Avg',data:rollingAvg,borderColor:G,backgroundColor:'transparent',
+       tension:.4,pointRadius:0,borderWidth:2.5}
+    ]
+  },
+  options:{
+    responsive:true,maintainAspectRatio:false,
+    plugins:{legend:{position:'top',labels:{boxWidth:12,font:{size:10}}}},
+    scales:{
+      x:{grid:{color:GRID},ticks:{maxRotation:45,font:{size:10}}},
+      y:{grid:{color:GRID},beginAtZero:true,ticks:{precision:0}}
+    }
+  }
+});
+
+// ── Latency percentiles ─────────────────────────────────────
+mkBar('latencyPercChart',
+  ['p50','p75','p90','p95','p99'],
+  latencyPercs,
+  [G, G, Y, R, '#ff4444']);
+
+// ── Mode Doughnut ──────────────────────────────────────────
+mkDoughnut('modeChart', modeLabels2, modeValues2);
+
+// ── Language bar ───────────────────────────────────────────
+mkBar('langChart', langLabels, langValues, P);
+
+// ── Cost by model bar ──────────────────────────────────────
+new Chart(document.getElementById('costChart'),{
+  type:'bar',
+  data:{
+    labels:costLabels,
+    datasets:[{data:costValues,backgroundColor:O,borderRadius:3,borderSkipped:false}]
+  },
+  options:{
+    responsive:true,maintainAspectRatio:false,
+    plugins:{legend:{display:false},tooltip:{callbacks:{label:ctx=>`$${ctx.parsed.y.toFixed(4)}`}}},
+    scales:{
+      x:{grid:{color:GRID},ticks:{font:{size:10}}},
+      y:{grid:{color:GRID},beginAtZero:true,ticks:{callback:v=>`$${v.toFixed(3)}`}}
+    }
+  }
+});
+
+// ── Top Sessions table ─────────────────────────────────────
+const tsBody = document.getElementById('topSessionsTable');
+topSessions.forEach((s,i)=>{
+  const row = document.createElement('tr');
+  const toks = s.tokens >= 1000 ? (s.tokens/1000).toFixed(1)+'k' : String(s.tokens);
+  row.innerHTML=`
+    <td>${i+1}</td>
+    <td><code style="font-size:.78rem;color:var(--muted)">${s.id}&hellip;</code></td>
+    <td>${s.date}</td>
+    <td><span class="badge">${s.requests}</span></td>
+    <td style="color:var(--yellow)">${toks}</td>
+    <td style="font-size:.8rem;color:var(--muted)">${s.model}</td>`;
+  tsBody.appendChild(row);
+});
+
+if(themeToggle){
+  themeToggle.addEventListener('click', ()=>{
+    const nextTheme = root.dataset.theme === 'light' ? 'dark' : 'light';
+    root.dataset.theme = nextTheme;
+    try {
+      localStorage.setItem(THEME_KEY, nextTheme);
+    } catch (error) {
+      // Ignore storage failures for local file previews.
+    }
+    syncChartDefaults();
+    syncThemeToggleLabel();
+    renderHeatmap();
+    renderIntensityGrid();
+    updateChartsTheme();
+  });
+}
+</script>
+</body>
+</html>

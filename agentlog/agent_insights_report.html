@@ -1,0 +1,334 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<title>GitHub Copilot Agent Log Insights</title>
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+<style>
+  :root {
+    --bg: #0d1117;
+    --surface: #161b22;
+    --border: #30363d;
+    --accent: #58a6ff;
+    --accent2: #3fb950;
+    --accent3: #d29922;
+    --accent4: #f78166;
+    --text: #e6edf3;
+    --muted: #8b949e;
+    --card-radius: 12px;
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body {
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Helvetica, Arial, sans-serif;
+    background: var(--bg);
+    color: var(--text);
+    line-height: 1.6;
+    padding: 32px 24px;
+  }
+  h1 { font-size: 1.8rem; font-weight: 700; margin-bottom: 4px; }
+  .subtitle { color: var(--muted); margin-bottom: 32px; font-size: 0.9rem; }
+  .section-title {
+    font-size: 1.1rem; font-weight: 600;
+    margin: 32px 0 16px;
+    color: var(--accent);
+    border-bottom: 1px solid var(--border);
+    padding-bottom: 8px;
+  }
+  .grid { display: grid; gap: 16px; }
+  .grid-2 { grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); }
+  .grid-3 { grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); }
+  .grid-chart { grid-template-columns: repeat(auto-fit, minmax(340px, 1fr)); }
+  .card {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: var(--card-radius);
+    padding: 20px;
+  }
+  .stat-label { font-size: 0.78rem; color: var(--muted); text-transform: uppercase; letter-spacing: .06em; }
+  .stat-value { font-size: 2rem; font-weight: 700; line-height: 1.2; margin-top: 4px; }
+  .stat-sub { font-size: 0.82rem; color: var(--muted); margin-top: 4px; }
+  .accent-blue { color: var(--accent); }
+  .accent-green { color: var(--accent2); }
+  .accent-yellow { color: var(--accent3); }
+  .accent-red { color: var(--accent4); }
+  .chart-wrap { position: relative; height: 240px; }
+  .chart-wrap-tall { position: relative; height: 300px; }
+  table { width: 100%; border-collapse: collapse; font-size: 0.88rem; }
+  th { text-align: left; padding: 8px 12px; color: var(--muted); font-weight: 600;
+       border-bottom: 1px solid var(--border); }
+  td { padding: 8px 12px; border-bottom: 1px solid var(--border); }
+  tr:last-child td { border-bottom: none; }
+  .bar-cell { display: flex; align-items: center; gap: 8px; }
+  .mini-bar { height: 8px; border-radius: 4px; background: var(--accent); flex-shrink: 0; }
+  .badge {
+    display: inline-block; padding: 2px 8px; border-radius: 12px;
+    font-size: 0.75rem; font-weight: 600;
+    background: rgba(88,166,255,.15); color: var(--accent);
+  }
+  .tag { display: inline-block; padding: 3px 10px; border-radius: 6px; font-size: 0.8rem;
+          margin: 3px; background: var(--border); color: var(--text); }
+  .version-row { display: flex; justify-content: space-between; padding: 6px 0;
+                  border-bottom: 1px solid var(--border); font-size: 0.85rem; }
+  .version-row:last-child { border-bottom: none; }
+  footer { text-align: center; color: var(--muted); font-size: 0.8rem; margin-top: 48px; }
+</style>
+</head>
+<body>
+<h1>GitHub Copilot Agent Log Insights</h1>
+<p class="subtitle">Generated 2026-05-13 15:09 &nbsp;·&nbsp; Analyzing logs from Feb 19, 2026 to Feb 19, 2026</p>
+
+<!-- ── OVERVIEW STATS ────────────────────────────────────── -->
+<div class="section-title">Overview</div>
+<div class="grid grid-3">
+  <div class="card">
+    <div class="stat-label">Total Sessions</div>
+    <div class="stat-value accent-blue">1</div>
+    <div class="stat-sub">0 with multiple requests</div>
+  </div>
+  <div class="card">
+    <div class="stat-label">Total Requests</div>
+    <div class="stat-value accent-green">1</div>
+    <div class="stat-sub">avg 1.0 per session &nbsp;·&nbsp; max 1</div>
+  </div>
+  <div class="card">
+    <div class="stat-label">Active Days</div>
+    <div class="stat-value accent-yellow">1</div>
+    <div class="stat-sub">1.0 requests / day avg</div>
+  </div>
+  <div class="card">
+    <div class="stat-label">Total Tokens Used</div>
+    <div class="stat-value accent-blue">0</div>
+    <div class="stat-sub">0 prompt &nbsp;·&nbsp; 0 output</div>
+  </div>
+  <div class="card">
+    <div class="stat-label">Total Tool Calls</div>
+    <div class="stat-value accent-green">0</div>
+    <div class="stat-sub">0.0 per session avg</div>
+  </div>
+  <div class="card">
+    <div class="stat-label">Avg Response Time</div>
+    <div class="stat-value accent-yellow">N/A</div>
+    <div class="stat-sub">TTFT N/A &nbsp;·&nbsp; p95 N/A</div>
+  </div>
+</div>
+
+<!-- ── CHARTS ROW 1 ──────────────────────────────────────── -->
+<div class="section-title">Usage Trends</div>
+<div class="grid grid-chart">
+  <div class="card">
+    <div style="font-weight:600;margin-bottom:12px">Daily Request Activity</div>
+    <div class="chart-wrap-tall"><canvas id="dailyChart"></canvas></div>
+  </div>
+  <div class="card">
+    <div style="font-weight:600;margin-bottom:12px">Requests by Hour of Day</div>
+    <div class="chart-wrap-tall"><canvas id="hourChart"></canvas></div>
+  </div>
+</div>
+
+<!-- ── MODEL USAGE ───────────────────────────────────────── -->
+<div class="section-title">Model Usage</div>
+<div class="grid grid-chart">
+  <div class="card">
+    <div style="font-weight:600;margin-bottom:12px">Requests per Model</div>
+    <div class="chart-wrap"><canvas id="modelChart"></canvas></div>
+  </div>
+  <div class="card">
+    <div style="font-weight:600;margin-bottom:12px">Token Distribution per Model</div>
+    <div class="chart-wrap"><canvas id="tokenChart"></canvas></div>
+  </div>
+</div>
+
+<!-- ── TOOL USAGE ────────────────────────────────────────── -->
+<div class="section-title">Tool Usage</div>
+<div class="grid grid-chart">
+  <div class="card">
+    <div style="font-weight:600;margin-bottom:16px">Top Tools Called</div>
+    <table>
+      <thead><tr><th>Tool</th><th>Calls</th><th>Share</th></tr></thead>
+      <tbody id="toolTable"></tbody>
+    </table>
+  </div>
+  <div class="card">
+    <div style="font-weight:600;margin-bottom:12px">Day-of-Week Activity</div>
+    <div class="chart-wrap"><canvas id="dowChart"></canvas></div>
+  </div>
+</div>
+
+<!-- ── USER MESSAGES ─────────────────────────────────────── -->
+<div class="section-title">User Message Patterns</div>
+<div class="grid grid-2">
+  <div class="card">
+    <div style="font-weight:600;margin-bottom:12px">Top Keywords</div>
+    <div id="keywordTags"></div>
+  </div>
+  <div class="card">
+    <table>
+      <thead><tr><th>Metric</th><th>Value</th></tr></thead>
+      <tbody>
+        <tr><td>Avg message length</td><td class="accent-blue">15 chars</td></tr>
+        <tr><td>Max message length</td><td class="accent-blue">15 chars</td></tr>
+        <tr><td>Most used mode</td><td class="accent-green">agent</td></tr>
+        <tr><td>Avg tokens / request</td><td class="accent-yellow">0</td></tr>
+      </tbody>
+    </table>
+  </div>
+</div>
+
+<!-- ── VERSION HISTORY ───────────────────────────────────── -->
+<div class="section-title">Version History</div>
+<div class="card">
+  <div id="versionList"></div>
+</div>
+
+<footer>Generated by analyze_agent_log.py on 2026-05-13 15:09</footer>
+
+<script>
+const BLUE   = '#58a6ff';
+const GREEN  = '#3fb950';
+const YELLOW = '#d29922';
+const RED    = '#f78166';
+const PURPLE = '#bc8cff';
+const CYAN   = '#39d353';
+const PALETTE = [BLUE, GREEN, YELLOW, RED, PURPLE, CYAN,
+                  '#ff8c00','#e07b39','#88d4ab','#b392f0'];
+
+const gridColor = 'rgba(48,54,61,0.8)';
+const textColor = '#8b949e';
+
+Chart.defaults.color = textColor;
+Chart.defaults.font.family = '-apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif';
+
+function barChart(id, labels, data, color, opts={}) {
+  new Chart(document.getElementById(id), {
+    type: 'bar',
+    data: {
+      labels,
+      datasets: [{
+        data,
+        backgroundColor: color || BLUE,
+        borderRadius: 4,
+        borderSkipped: false,
+      }]
+    },
+    options: {
+      responsive: true, maintainAspectRatio: false,
+      plugins: { legend: { display: false }, ...opts.plugins },
+      scales: {
+        x: { grid: { color: gridColor }, ticks: { maxRotation: 45, font: { size: 11 } } },
+        y: { grid: { color: gridColor }, beginAtZero: true, ticks: { precision: 0 } }
+      },
+      ...opts
+    }
+  });
+}
+
+function doughnutChart(id, labels, data) {
+  new Chart(document.getElementById(id), {
+    type: 'doughnut',
+    data: {
+      labels,
+      datasets: [{ data, backgroundColor: PALETTE, borderWidth: 2, borderColor: '#161b22' }]
+    },
+    options: {
+      responsive: true, maintainAspectRatio: false,
+      plugins: {
+        legend: { position: 'right', labels: { boxWidth: 12, padding: 12, font: { size: 11 } } }
+      }
+    }
+  });
+}
+
+// ── Data injected by Python ───────────────────────────────────────
+const dailyLabels  = ["2026-02-19"];
+const dailyValues  = [1];
+const hourLabels   = ["00:00", "01:00", "02:00", "03:00", "04:00", "05:00", "06:00", "07:00", "08:00", "09:00", "10:00", "11:00", "12:00", "13:00", "14:00", "15:00", "16:00", "17:00", "18:00", "19:00", "20:00", "21:00", "22:00", "23:00"];
+const hourValues   = [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0];
+const modelLabels  = ["gpt-5-mini"];
+const modelValues  = [1];
+const tokenLabels  = ["gpt-5-mini"];
+const promptValues = [0];
+const outputValues = [0];
+const toolData     = [];
+const dowLabels    = ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"];
+const dowValues    = [0, 0, 0, 1, 0, 0, 0];
+const keywords     = [["run", 1]];
+const versions     = [];
+
+// ── Render charts ─────────────────────────────────────────────────
+barChart('dailyChart', dailyLabels, dailyValues, BLUE);
+
+barChart('hourChart', hourLabels, hourValues,
+  hourValues.map((v, i) => i >= 9 && i <= 17 ? GREEN : BLUE));
+
+doughnutChart('modelChart', modelLabels, modelValues);
+
+// Stacked bar for tokens
+new Chart(document.getElementById('tokenChart'), {
+  type: 'bar',
+  data: {
+    labels: tokenLabels,
+    datasets: [
+      { label: 'Prompt', data: promptValues, backgroundColor: BLUE, borderRadius: 4 },
+      { label: 'Output', data: outputValues, backgroundColor: GREEN, borderRadius: 4 }
+    ]
+  },
+  options: {
+    responsive: true, maintainAspectRatio: false,
+    plugins: { legend: { position: 'top', labels: { boxWidth: 12 } } },
+    scales: {
+      x: { grid: { color: gridColor }, stacked: true },
+      y: { grid: { color: gridColor }, beginAtZero: true, stacked: true, ticks: { precision: 0 } }
+    }
+  }
+});
+
+barChart('dowChart', dowLabels, dowValues, YELLOW);
+
+// ── Tool table ────────────────────────────────────────────────────
+const toolTotal = toolData.reduce((s, t) => s + t[1], 0);
+const tbody = document.getElementById('toolTable');
+toolData.forEach(([name, count]) => {
+  const pct = toolTotal > 0 ? Math.round(count / toolTotal * 100) : 0;
+  const row = document.createElement('tr');
+  row.innerHTML = `
+    <td>${name}</td>
+    <td><span class="badge">${count}</span></td>
+    <td>
+      <div class="bar-cell">
+        <div class="mini-bar" style="width:${pct * 1.5}px;max-width:120px"></div>
+        <span style="font-size:.8rem;color:var(--muted)">${pct}%</span>
+      </div>
+    </td>`;
+  tbody.appendChild(row);
+});
+
+// ── Keywords ──────────────────────────────────────────────────────
+const kwContainer = document.getElementById('keywordTags');
+const kwMax = keywords.length > 0 ? keywords[0][1] : 1;
+keywords.forEach(([word, count]) => {
+  const span = document.createElement('span');
+  const size = 0.8 + (count / kwMax) * 0.6;
+  span.className = 'tag';
+  span.style.fontSize = size + 'rem';
+  span.textContent = `${word} (${count})`;
+  kwContainer.appendChild(span);
+});
+
+// ── Version history ───────────────────────────────────────────────
+const vContainer = document.getElementById('versionList');
+if (versions.length === 0) {
+  vContainer.innerHTML = '<span style="color:var(--muted)">No version history found in logs.</span>';
+} else {
+  versions.forEach(v => {
+    const div = document.createElement('div');
+    div.className = 'version-row';
+    div.innerHTML = `
+      <span>Copilot <strong>${v.copilot}</strong> &nbsp;·&nbsp; VS Code <strong>${v.vscode}</strong></span>
+      <span style="color:var(--muted)">${v.ts || ''}</span>`;
+    vContainer.appendChild(div);
+  });
+}
+</script>
+</body>
+</html>
